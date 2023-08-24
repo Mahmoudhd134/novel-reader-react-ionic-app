@@ -17,8 +17,10 @@ import {FileInfo, Filesystem} from "@capacitor/filesystem";
 import {useEffect, useRef, useState} from "react";
 import {NOVEL_DIR_PATH, ROOT_DIRECTORY} from "../../env";
 import {addCircleOutline, addCircleSharp, saveOutline, saveSharp, trashOutline, trashSharp} from 'ionicons/icons'
+import {Bookmark} from "../../Models/Bookmark";
 
 export const ManageNovels = () => {
+        const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
 
         const [novels, setNovels] = useState<FileInfo[]>([]);
         const fileInputRef = useRef<HTMLInputElement>(null);
@@ -29,6 +31,7 @@ export const ManageNovels = () => {
 
         useEffect(() => {
             (async () => await setNovelsFromDirectory())()
+            setBookmarks(JSON.parse(localStorage.getItem('bookmarks') ?? '[]'))
         }, []);
 
         useEffect(() => {
@@ -48,58 +51,61 @@ export const ManageNovels = () => {
                 }))
         }
 
-        //For upload files to track last file.(to update the state and others like close loading spinner and make alert)
-        //It must be outside the func and in a scope that not destroy (ex. parent func).
-        //I made a lexical scope with IIFC but after a while I realize that the component scope does not destroy so I use it.
-        //So, do not confused with a 'let' variable with no 'useState' or anything.
-        //But relly I'm still using lexical scope. -lol-
-        //this is for the future version of my (__).
-        let currentNumber = 0
         const handleFileUpload = async () => {
             const files = fileInputRef.current?.files
             if (!files)
                 return
 
-            await makeLoading({
+            files.length > 0 && await makeLoading({
                 message: 'Uploading File...',
                 spinner: 'lines'
             })
-            const onLoad = (reader: FileReader, file: File) => async () => {
-                await Filesystem.writeFile(
-                    {
-                        path: NOVEL_DIR_PATH + file.name,
-                        data: reader.result as string,
-                        directory: ROOT_DIRECTORY,
-                        recursive: true
-                    })
-                    .catch(async e => {
-                        console.error(e)
-                        await makeAlert({
-                            header: 'Error',
-                            message: JSON.stringify(e, null, '\n'),
-                            buttons: ['Return Back']
-                        })
-                    })
-                    .finally(async () => {
-                        console.log(`file No. ${currentNumber + 1},its name '${file.name}'`)
-                        if (currentNumber++ < files.length - 1)
-                            return
-                        console.log(`last file No. ${currentNumber},its name '${file.name}'`)
 
-                        await dismissLoading()
-                        await makeAlert({
-                            message: 'تم رفع الملف بنجاح',
-                            header: 'Success',
-                            buttons: ['Ok']
+            //For upload files to track last file.(to update the state and others like close loading spinner and make alert)
+            //It must be outside the func and in a scope that not destroy (ex. parent func).
+            //I made a lexical scope with IIFC.
+            //this is for the future version of my (__).
+            const onLoad = (() => {
+                let currentNumber = 0
+                return (reader: FileReader, file: File) => async () => {
+                    await Filesystem.writeFile(
+                        {
+                            path: NOVEL_DIR_PATH + file.name,
+                            data: reader.result as string,
+                            directory: ROOT_DIRECTORY,
+                            recursive: true
                         })
-                        await setNovelsFromDirectory()
-                    })
+                        .catch(async e => {
+                            console.error(e)
+                            await makeAlert({
+                                header: 'Error',
+                                message: JSON.stringify(e, null, '\n'),
+                                buttons: ['Return Back']
+                            })
+                        })
+                        .finally(async () => {
+                            console.log(`file No. ${currentNumber + 1},its name '${file.name}'`)
+                            if (currentNumber++ < files.length - 1)
+                                return
+                            console.log(`last file No. ${currentNumber},its name '${file.name}'`)
 
-            }
+                            await dismissLoading()
+                            await makeAlert({
+                                message: 'تم رفع الملف بنجاح',
+                                header: 'Success',
+                                buttons: ['Ok']
+                            })
+                            await setNovelsFromDirectory()
+                        })
+
+                }
+            })()
             for (let i = 0; i < files.length; i++) {
                 const file = files.item(i)
                 if (!file)
                     return
+
+                // console.log(await file.text())
 
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
@@ -145,11 +151,20 @@ export const ManageNovels = () => {
                 from: file.uri,
                 to: newPath
             })
-                .then(r => makeAlert({
-                    header: 'Success',
-                    message: `name changed successfully from '${file.name}' to '${newName}'.`,
-                    buttons: ['Ok']
-                }))
+                .then(r => {
+                    const newBookmarks: Bookmark[] = bookmarks.map(b => b.novelFileName !== file.name ? b :
+                        {
+                            ...b,
+                            novelFileName: newName
+                        })
+                    setBookmarks(newBookmarks)
+                    localStorage.setItem('bookmarks', JSON.stringify(newBookmarks))
+                    makeAlert({
+                        header: 'Success',
+                        message: `name changed successfully from '${file.name}' to '${newName}'.`,
+                        buttons: ['Ok']
+                    })
+                })
                 .then(setNovelsFromDirectory)
                 .catch(async e => await makeAlert({
                     header: 'Error Deleting The File',
@@ -173,6 +188,7 @@ export const ManageNovels = () => {
                             className={'hidden'}
                             onChange={handleFileUpload}
                             ref={fileInputRef}
+                            accept={'application/JSON'}
                             multiple
                         />
                         <IonButton onClick={_ => fileInputRef.current?.click()}>

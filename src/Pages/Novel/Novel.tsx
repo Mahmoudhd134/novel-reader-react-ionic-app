@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef, useState} from "react";
+import React, {useEffect, useMemo, useRef, useState} from "react";
 import {Volume} from "./Volume";
 import {
     IonButton,
@@ -10,20 +10,23 @@ import {
     IonTitle,
     isPlatform,
     useIonAlert,
-    useIonLoading, useIonViewWillEnter, useIonViewWillLeave
+    useIonLoading,
+    useIonViewWillEnter
 } from "@ionic/react";
 import {MyToolbar} from "../../components/MyToolbar";
-import {Encoding, FileInfo, Filesystem} from "@capacitor/filesystem";
+import {Encoding, FileInfo, Filesystem, ReadFileResult} from "@capacitor/filesystem";
 import {NOVEL_DIR_PATH, ROOT_DIRECTORY} from "../../env";
 import {NovelModelWithVolumes} from "../../Models/NovelModelWithVolumes";
 import {VolumeModel} from "../../Models/VolumeModel";
 import {isNovelModelWithNoVolumes, NovelModelWithNoVolumes} from "../../Models/NovelModelWithNoVolumes";
 import {ChapterModel} from "../../Models/ChapterModel";
+import {Bookmark} from "../../Models/Bookmark";
 
 export const Novel = () => {
     const CUSTOM_VOLUME_LIMIT = 100
 
-    const [bookmarks, setBookmarks] = useState<string[][]>([[]])
+    const [bookmarks, setBookmarks] = useState<Bookmark[]>([])
+    const [gotoBookmark, setGotoBookmark] = useState<Bookmark>();
 
     const [novels, setNovels] = useState<FileInfo[]>();
     const [selectedNovelInfo, setSelectedNovelInfo] = useState<FileInfo>();
@@ -42,6 +45,8 @@ export const Novel = () => {
     const chapterIndex = useMemo(() => volume?.Chapters.findIndex(c => c.Title === chapter?.Title)
         , [volume?.Chapters, chapter?.Title]);
 
+    console.log({selectedNovelInfo, selectedNovelWithVolumes, volume, chapter})
+
     useIonViewWillEnter(() => {
         const oldBookmarks = JSON.parse(localStorage.getItem('bookmarks') ?? '[]')
         setBookmarks(oldBookmarks)
@@ -55,6 +60,28 @@ export const Novel = () => {
         setBookmarks(oldBookmarks)
     }, []);
 
+    useEffect(() => {
+        console.log('here')
+        if (!gotoBookmark)
+            return
+        if (!selectedNovelWithVolumes)
+            return
+        console.log('here2')
+
+        setGotoBookmark(undefined)
+
+        const bookmarkVolume = selectedNovelWithVolumes.Volumes.find(v => v.Title === gotoBookmark.volumeName)
+        if (!bookmarkVolume)
+            return
+
+        const bookmarkChapter = bookmarkVolume.Chapters.find(c => c.Title === gotoBookmark.chapterName)
+        if (!bookmarkChapter)
+            return
+
+        setVolume(bookmarkVolume)
+        setChapter(bookmarkChapter)
+
+    }, [selectedNovelWithVolumes]);
 
     useEffect(() => {
         if (!selectedNovelInfo)
@@ -64,15 +91,9 @@ export const Novel = () => {
     }, [selectedNovelInfo]);
 
     useEffect(() => {
-        setVolume(undefined)
-        setChapter(undefined)
-    }, [selectedNovelWithVolumes]);
+        if (!selectedNovelInfo)
+            return
 
-    useEffect(() => {
-        setChapter(undefined)
-    }, [volume]);
-
-    useEffect(() => {
         if (!selectedNovelWithVolumes)
             return
 
@@ -82,8 +103,14 @@ export const Novel = () => {
         if (!chapter)
             return
 
-        const newBookmarks = [...bookmarks.filter(b => b[0] !== selectedNovelWithVolumes.Name ||
-            b[1] !== volume.Title), [selectedNovelWithVolumes.Name, volume.Title, chapter.Title]]
+        const newBookmarks: Bookmark[] = [...bookmarks.filter(b => b.novelName !== selectedNovelWithVolumes.Name
+            || b.volumeName !== volume.Title),
+            {
+                novelFileName: selectedNovelInfo.name,
+                novelName: selectedNovelWithVolumes.Name,
+                volumeName: volume.Title,
+                chapterName: chapter.Title
+            }]
 
         setBookmarks(newBookmarks)
         localStorage.setItem('bookmarks', JSON.stringify(newBookmarks))
@@ -104,39 +131,40 @@ export const Novel = () => {
         makeLoading({
             message: 'جارى التحميل...',
             spinner: 'bubbles'
-        })
-        Filesystem.readFile({
-            path: uri,
-            encoding: Encoding.UTF8
-        })
-            .then(r => {
-                let novel = JSON.parse(isPlatform('desktop') ?
-                    atob(r.data as string) :
-                    r.data as string)
-
-                if (isNovelModelWithNoVolumes(novel))
-                    novel = convertNovelWithNoVolumesToNovelWithVolumes(novel)
-
-                setSelectedNovelWithVolumes(novel)
-                if (bookmarks?.some(b => b[0] === novel.Name))
-                    makeAlert({
-                        header: `Bookmark/s Found For Novel '${novel.Name}'`,
-                        subHeader: 'Are You Want To Go To One Of Them ?',
-                        message: bookmarks?.filter(b => b[0] === novel.Name)
-                            .map(b => b[2] + '-'.repeat(50))
-                            .flat().toString(),
-                        buttons: ['Ok', 'Return Back']
-                    })
-
+        }).then(r =>
+            Filesystem.readFile({
+                path: uri,
+                encoding: Encoding.UTF8
             })
-            .catch(e => makeAlert({
-                header: 'Error',
-                message: JSON.stringify(e, null, '\n'),
-                buttons: ['Return Back']
-            }))
-            .finally(dismissLoading)
+                .then(setAndConvertNovel)
+                .catch(e => makeAlert({
+                    header: 'Error',
+                    message: JSON.stringify(e, null, '\n'),
+                    buttons: ['Return Back']
+                }))
+                .finally(dismissLoading)
+        )
+    }
 
+    const setAndConvertNovel = (result: ReadFileResult) => {
 
+        let novel = JSON.parse(isPlatform('desktop') ?
+            atob(result.data as string) :
+            result.data as string)
+
+        if (isNovelModelWithNoVolumes(novel))
+            novel = convertNovelWithNoVolumesToNovelWithVolumes(novel)
+
+        setSelectedNovelWithVolumes(novel)
+        // if (bookmarks?.some(b => b[0] === novel.Name))
+        //     makeAlert({
+        //         header: `Bookmark/s Found For Novel '${novel.Name}'`,
+        //         subHeader: 'Are You Want To Go To One Of Them ?',
+        //         message: bookmarks?.filter(b => b[0] === novel.Name)
+        //             .map(b => b[2] + '-'.repeat(50))
+        //             .flat().toString(),
+        //         buttons: ['Ok', 'Return Back']
+        //     })
     }
 
     const setVolumeByName = (name: string) => setVolume(selectedNovelWithVolumes?.Volumes.find(x => x.Title == name))
@@ -159,6 +187,11 @@ export const Novel = () => {
         return novelWithVolumes
     }
 
+    const gotoBookmarkHandler = (bookmark: Bookmark) => {
+        setSelectedNovelInfo(novels?.find(n => n.name === bookmark.novelFileName))
+        setGotoBookmark(bookmark)
+    }
+
     return (
         <IonPage>
             <MyToolbar backButton>
@@ -169,15 +202,16 @@ export const Novel = () => {
                 <div className={'container mx-auto'} style={{direction: 'rtl'}}>
                     <IonItem>
                         <IonSelect
-                            onIonChange={e => {
-                                setBookmarks(p => p.filter(b => b.toString() !== e.detail.value))
-                            }}
-                            label="Remove Bookmarks"
+                            onIonChange={e => gotoBookmarkHandler(e.detail.value)}
+                            label="Goto Bookmark"
                             placeholder="Bookmarks">
                             {bookmarks.map(b => <IonSelectOption
-                                key={b.toString()}
-                                value={b}>
-                                {b.toString()}
+                                key={b.novelFileName + b.novelName + b.volumeName + b.chapterName}
+                                value={b}
+                                className={'my-5 flex flex-col border rounded-xl p-4 text-end'}>
+                                <div>الرواية: {b.novelName} </div>
+                                <div>المجلد: {b.volumeName} </div>
+                                <div>الفصل: {b.chapterName} </div>
                             </IonSelectOption>)}
                         </IonSelect>
                     </IonItem>
@@ -194,7 +228,9 @@ export const Novel = () => {
                                 setSelectedNovelInfo(e.detail.value)
                                 setSelectedNovelWithVolumes(undefined)
                                 setVolume(undefined)
+                                setChapter(undefined)
                             }}
+                            value={selectedNovelInfo}
                             label="اختر رواية"
                             placeholder="رواية">
                             {novels?.map(n => <IonSelectOption
@@ -212,7 +248,11 @@ export const Novel = () => {
                     {selectedNovelWithVolumes && <>
                         <IonItem>
                             <IonSelect
-                                onIonChange={e => setVolumeByName(e.detail.value)}
+                                onIonChange={e => {
+                                    setVolumeByName(e.detail.value)
+                                    setChapter(undefined)
+                                }}
+                                value={volume?.Title}
                                 label="اختر مجلد"
                                 placeholder="مجلد">
                                 {volumesName?.map(v => <IonSelectOption

@@ -2,18 +2,20 @@ import {IonButton, IonContent, IonIcon, IonItem, IonItemGroup, IonPage, IonText,
 import {MyToolbar} from "../../components/MyToolbar";
 import {useEffect, useState} from "react";
 import {trashOutline, trashSharp} from "ionicons/icons";
+import {Bookmark} from "../../Models/Bookmark";
 
 export const NovelsBookmarks = () => {
-    const [bookmarks, setBookmarks] = useState<string[][]>([[]])
+    const [bookmarks, setBookmarks] = useState<Bookmark[]>([])
 
     useEffect(() => {
         const oldBookmarks = JSON.parse(localStorage.getItem('bookmarks') ?? '[]')
         setBookmarks(oldBookmarks)
     }, []);
 
-    const deleteBookmark = (bookmark: string[]) => () => {
-        console.log('here')
-        const newBookmarks = bookmarks.filter(b => b.toString() !== bookmark.toString())
+    const deleteBookmark = (bookmark: Bookmark) => () => {
+        //This is reference equality.
+        //I pass the ref of the bookmark to this func.(I hope)
+        const newBookmarks = bookmarks.filter(b => b !== bookmark)
         setBookmarks(newBookmarks)
         localStorage.setItem('bookmarks', JSON.stringify(newBookmarks))
     }
@@ -37,13 +39,15 @@ export const NovelsBookmarks = () => {
                         </div>
                     </IonText>
                 </IonItem>}
-                {bookmarks.map(b => <IonItem key={b.toString()}
-                                             className={'my-5'}>
-                    {b.toString()}
-                    <IonButton color={'danger'} className={'mx-4'} onClick={deleteBookmark(b)}>
+                {bookmarks.map(b => <div key={b.novelFileName + b.novelName + b.volumeName + b.chapterName}
+                                         className={'my-5 flex flex-col border rounded-xl p-4 text-end'}>
+                    <div>الرواية: {b.novelName}</div>
+                    <div>المجلد: {b.volumeName}</div>
+                    <div>الفصل: {b.chapterName}</div>
+                    <IonButton color={'danger'} className={'mt-8'} onClick={deleteBookmark(b)}>
                         <IonIcon ios={trashOutline} md={trashSharp}/>
                     </IonButton>
-                </IonItem>)}
+                </div>)}
             </IonItemGroup>
         </IonContent>
     </IonPage>
