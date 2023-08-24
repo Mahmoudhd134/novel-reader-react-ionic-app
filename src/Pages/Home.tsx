@@ -1,7 +1,7 @@
 import {IonButton, IonContent, IonPage, IonTitle} from "@ionic/react";
 import {MyToolbar} from "../components/MyToolbar";
 
-export const Home = () => {
+const Home = () => {
     return <IonPage>
         <MyToolbar>
             <IonTitle className={'ion-text-center'}>Home Page</IonTitle>
@@ -14,3 +14,4 @@ export const Home = () => {
         </IonContent>
     </IonPage>
 };
+export default Home

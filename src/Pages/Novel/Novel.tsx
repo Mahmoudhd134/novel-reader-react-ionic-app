@@ -8,9 +8,9 @@ import {
     IonSelect,
     IonSelectOption,
     IonTitle,
-    isPlatform,
     useIonAlert,
     useIonLoading,
+    useIonModal,
     useIonViewWillEnter
 } from "@ionic/react";
 import {MyToolbar} from "../../components/MyToolbar";
@@ -21,6 +21,8 @@ import {VolumeModel} from "../../Models/VolumeModel";
 import {isNovelModelWithNoVolumes, NovelModelWithNoVolumes} from "../../Models/NovelModelWithNoVolumes";
 import {ChapterModel} from "../../Models/ChapterModel";
 import {Bookmark} from "../../Models/Bookmark";
+import {OverlayEventDetail} from "@ionic/react/dist/types/components/react-component-lib/interfaces";
+import {observer} from "mobx-react";
 
 export const Novel = () => {
     const CUSTOM_VOLUME_LIMIT = 100
@@ -45,7 +47,6 @@ export const Novel = () => {
     const chapterIndex = useMemo(() => volume?.Chapters.findIndex(c => c.Title === chapter?.Title)
         , [volume?.Chapters, chapter?.Title]);
 
-    console.log({selectedNovelInfo, selectedNovelWithVolumes, volume, chapter})
 
     useIonViewWillEnter(() => {
         const oldBookmarks = JSON.parse(localStorage.getItem('bookmarks') ?? '[]')
@@ -61,12 +62,10 @@ export const Novel = () => {
     }, []);
 
     useEffect(() => {
-        console.log('here')
         if (!gotoBookmark)
             return
         if (!selectedNovelWithVolumes)
             return
-        console.log('here2')
 
         setGotoBookmark(undefined)
 
@@ -147,16 +146,13 @@ export const Novel = () => {
     }
 
     const setAndConvertNovel = (result: ReadFileResult) => {
-
-        let novel = JSON.parse(isPlatform('desktop') ?
-            atob(result.data as string) :
-            result.data as string)
+        let novel = JSON.parse(result.data as string)
 
         if (isNovelModelWithNoVolumes(novel))
             novel = convertNovelWithNoVolumesToNovelWithVolumes(novel)
 
         setSelectedNovelWithVolumes(novel)
-        // if (bookmarks?.some(b => b[0] === novel.Name))
+        // if (bookmarks?.some(b => b.novelName === novel.Name))
         //     makeAlert({
         //         header: `Bookmark/s Found For Novel '${novel.Name}'`,
         //         subHeader: 'Are You Want To Go To One Of Them ?',

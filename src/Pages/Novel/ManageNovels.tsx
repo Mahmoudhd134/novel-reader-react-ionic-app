@@ -13,7 +13,7 @@ import {
     useIonLoading
 } from "@ionic/react";
 import {MyToolbar} from "../../components/MyToolbar";
-import {FileInfo, Filesystem} from "@capacitor/filesystem";
+import {Encoding, FileInfo, Filesystem} from "@capacitor/filesystem";
 import {useEffect, useRef, useState} from "react";
 import {NOVEL_DIR_PATH, ROOT_DIRECTORY} from "../../env";
 import {addCircleOutline, addCircleSharp, saveOutline, saveSharp, trashOutline, trashSharp} from 'ionicons/icons'
@@ -59,20 +59,18 @@ export const ManageNovels = () => {
             files.length > 0 && await makeLoading({
                 message: 'Uploading File...',
                 spinner: 'lines'
-            })
-
-            //For upload files to track last file.(to update the state and others like close loading spinner and make alert)
-            //It must be outside the func and in a scope that not destroy (ex. parent func).
-            //I made a lexical scope with IIFC.
-            //this is for the future version of my (__).
-            const onLoad = (() => {
-                let currentNumber = 0
-                return (reader: FileReader, file: File) => async () => {
+            }).then(async _ => {
+                for (let i = 0; i < files.length; i++) {
+                    const file = files.item(i)
+                    if (!file)
+                        return
+                    const text = await file.text()
                     await Filesystem.writeFile(
                         {
                             path: NOVEL_DIR_PATH + file.name,
-                            data: reader.result as string,
+                            data: text,
                             directory: ROOT_DIRECTORY,
+                            encoding:Encoding.UTF8,
                             recursive: true
                         })
                         .catch(async e => {
@@ -83,35 +81,17 @@ export const ManageNovels = () => {
                                 buttons: ['Return Back']
                             })
                         })
-                        .finally(async () => {
-                            console.log(`file No. ${currentNumber + 1},its name '${file.name}'`)
-                            if (currentNumber++ < files.length - 1)
-                                return
-                            console.log(`last file No. ${currentNumber},its name '${file.name}'`)
-
-                            await dismissLoading()
-                            await makeAlert({
-                                message: 'تم رفع الملف بنجاح',
-                                header: 'Success',
-                                buttons: ['Ok']
-                            })
-                            await setNovelsFromDirectory()
-                        })
-
                 }
-            })()
-            for (let i = 0; i < files.length; i++) {
-                const file = files.item(i)
-                if (!file)
-                    return
-
-                // console.log(await file.text())
-
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-
-                reader.onload = onLoad(reader, file)
-            }
+            })
+                .finally(async () => {
+                    await dismissLoading()
+                    await makeAlert({
+                        message: 'تم رفع الملف بنجاح',
+                        header: 'Success',
+                        buttons: ['Ok']
+                    })
+                    await setNovelsFromDirectory()
+                })
         }
 
         const deleteHandler = (file: FileInfo) => async () => {

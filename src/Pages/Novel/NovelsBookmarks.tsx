@@ -4,7 +4,7 @@ import {useEffect, useState} from "react";
 import {trashOutline, trashSharp} from "ionicons/icons";
 import {Bookmark} from "../../Models/Bookmark";
 
-export const NovelsBookmarks = () => {
+const NovelsBookmarks = () => {
     const [bookmarks, setBookmarks] = useState<Bookmark[]>([])
 
     useEffect(() => {
@@ -52,3 +52,4 @@ export const NovelsBookmarks = () => {
         </IonContent>
     </IonPage>
 };
+export default NovelsBookmarks

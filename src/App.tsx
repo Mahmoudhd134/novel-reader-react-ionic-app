@@ -1,11 +1,11 @@
-import {IonRouterLink, IonRouterOutlet, useIonAlert} from "@ionic/react";
+import {IonRouterLink, IonRouterOutlet} from "@ionic/react";
 import {Route} from "react-router-dom";
 import NovelDashBoard from "./Pages/Novel/NovelDashBoard";
-import {Home} from "./Pages/Home";
-import {Novel} from "./Pages/Novel/Novel";
-import {ManageNovels} from "./Pages/Novel/ManageNovels";
+import Home from "./Pages/Home";
+import Novel from "./Pages/Novel/Novel";
+import ManageNovels from "./Pages/Novel/ManageNovels";
 import {useEffect} from "react";
-import {NovelsBookmarks} from "./Pages/Novel/NovelsBookmarks";
+import NovelsBookmarks from "./Pages/Novel/NovelsBookmarks";
 
 function App() {
     useEffect(() => {
