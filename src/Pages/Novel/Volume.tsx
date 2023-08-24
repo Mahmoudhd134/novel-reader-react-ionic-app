@@ -1,33 +1,40 @@
-import React, {SetStateAction} from "react";
-import {ChapterModel} from "../../Models/ChapterModel";
+import React from "react";
 import Chapter from './Chapter'
 import {IonButton, IonButtons, IonItem, IonSelect, IonSelectOption} from "@ionic/react";
-import {VolumeModel} from "../../Models/VolumeModel";
+import {useMobxStore} from "../../App/Stores/Store";
+import {observer} from "mobx-react";
 
-interface Props {
-    volume: VolumeModel,
-    chapter: ChapterModel | undefined,
-    setChapter: React.Dispatch<SetStateAction<ChapterModel | undefined>>,
-    chaptersName: string[] | undefined,
-    chapterIndex: number | undefined
-}
 
-export const Volume = ({volume, chaptersName, chapter, setChapter, chapterIndex}: Props) => {
-    const setChapterByName = (name: string) => setChapter(volume.Chapters.find(x => x.Title === name))
+export const Volume = () => {
+    const {novelStore} = useMobxStore()
+    const {
+        chapterIndex,
+        volume,
+        setChapterByName,
+        chaptersName,
+        chapter,
+        hasNextChapter,
+        hasPrevChapter,
+        setChapterToPreviousOne,
+        setChapterToNextOne
+    } = novelStore
+
+    if (!volume)
+        return <>
+            <h3>There is no volume!!</h3>
+            <p>This Is Error !!!</p>
+        </>
+
 
     const nextAndPrevButtons = chapterIndex != undefined && <IonButtons className="flex justify-between">
         <IonButton
-            disabled={chapterIndex >= volume.Chapters.length - 1}
-            onClick={_ => {
-                setChapter(volume.Chapters[chapterIndex + 1])
-            }}
+            disabled={!hasNextChapter()}
+            onClick={_ => setChapterToNextOne()}
         >Next</IonButton>
 
         <IonButton
-            disabled={chapterIndex == 0}
-            onClick={_ => {
-                setChapter(volume.Chapters[chapterIndex - 1])
-            }}
+            disabled={!hasPrevChapter()}
+            onClick={_ => setChapterToPreviousOne()}
         >Prev</IonButton>
     </IonButtons>
 
@@ -53,11 +60,11 @@ export const Volume = ({volume, chaptersName, chapter, setChapter, chapterIndex}
 
             {chapter && <>
                 {nextAndPrevButtons}
-                <Chapter chapter={chapter}/>
+                <Chapter/>
                 {nextAndPrevButtons}
             </>}
         </>
     );
 };
 
-export default Volume
+export default observer(Volume)

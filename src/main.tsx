@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import './index.css'
 import {createBrowserHistory} from 'history'
+import {store, storeContext} from "./App/Stores/Store";
 
 import '@fortawesome/fontawesome-svg-core'
 import '@fortawesome/free-regular-svg-icons'
@@ -30,13 +31,15 @@ setupIonicReact()
 const history = createBrowserHistory()
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-    // <React.StrictMode>
-        <IonApp>
-            <IonReactRouter {...{history}}>
-                <IonRouterOutlet>
-                    <Route path={'/*'} component={App}/>
-                </IonRouterOutlet>
-            </IonReactRouter>
-        </IonApp>
-    // </React.StrictMode>,
+    <React.StrictMode>
+        <storeContext.Provider value={store}>
+            <IonApp>
+                <IonReactRouter {...{history}}>
+                    <IonRouterOutlet>
+                        <Route path={'/*'} component={App}/>
+                    </IonRouterOutlet>
+                </IonReactRouter>
+            </IonApp>
+        </storeContext.Provider>
+    </React.StrictMode>,
 )

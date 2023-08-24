@@ -1,11 +1,20 @@
 import {useState} from "react";
-import {ChapterModel} from "../../Models/ChapterModel";
-import {IonButton, IonButtons, IonItem, IonItemGroup, IonSelect, IonSelectOption} from "@ionic/react";
+import {IonItem, IonItemGroup, IonSelect, IonSelectOption} from "@ionic/react";
+import {useMobxStore} from "../../App/Stores/Store";
+import {observer} from "mobx-react";
 
-const Chapter = ({chapter}: { chapter: ChapterModel }) => {
+const Chapter = () => {
+    const {novelStore: {chapter}} = useMobxStore()
+
     const [fontSize, setFontSize] = useState(17);
     const [lineHeight, setLineHeight] = useState(35);
     const [whiteLines, setWhiteLines] = useState(1);
+
+    if (!chapter)
+        return <>
+            <h3>There is no chapter!!!</h3>
+            <p>This is error</p>
+        </>
 
     return (
         <>
@@ -68,4 +77,4 @@ const Chapter = ({chapter}: { chapter: ChapterModel }) => {
     );
 };
 
-export default Chapter
+export default observer(Chapter)

@@ -14,15 +14,20 @@ import {
 } from "@ionic/react";
 import {MyToolbar} from "../../components/MyToolbar";
 import {Encoding, FileInfo, Filesystem} from "@capacitor/filesystem";
-import {useEffect, useRef, useState} from "react";
+import {useEffect, useRef} from "react";
 import {NOVEL_DIR_PATH, ROOT_DIRECTORY} from "../../env";
 import {addCircleOutline, addCircleSharp, saveOutline, saveSharp, trashOutline, trashSharp} from 'ionicons/icons'
-import {Bookmark} from "../../Models/Bookmark";
+import {useMobxStore} from "../../App/Stores/Store";
+import {observer} from "mobx-react";
 
-export const ManageNovels = () => {
-        const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+const ManageNovels = () => {
+        const {novelStore, bookmarkStore} = useMobxStore()
+        const {novels, setNovelsFromDeviceStorage, deleteNovel} = novelStore
+        const {
+            changeNovelNameForBookmarks,
+            deleteBookmarksForNovelFileName
+        } = bookmarkStore
 
-        const [novels, setNovels] = useState<FileInfo[]>([]);
         const fileInputRef = useRef<HTMLInputElement>(null);
         const [makeAlert] = useIonAlert()
         const [makeLoading, dismissLoading] = useIonLoading()
@@ -30,26 +35,8 @@ export const ManageNovels = () => {
         const inputsRef = useRef<HTMLIonInputElement[]>([]);
 
         useEffect(() => {
-            (async () => await setNovelsFromDirectory())()
-            setBookmarks(JSON.parse(localStorage.getItem('bookmarks') ?? '[]'))
-        }, []);
-
-        useEffect(() => {
-            inputsRef.current = inputsRef.current.slice(0, novels.length)
+            inputsRef.current = inputsRef.current.slice(0, novels?.length)
         }, [novels]);
-
-        const setNovelsFromDirectory = async () => {
-            await Filesystem.readdir({
-                path: NOVEL_DIR_PATH,
-                directory: ROOT_DIRECTORY
-            })
-                .then(r => setNovels(r.files.filter(f => f.name.endsWith('.json'))))
-                .catch(async e => await makeAlert({
-                    message: JSON.stringify(e, null, '\n'),
-                    header: 'Error',
-                    buttons: ['ok']
-                }))
-        }
 
         const handleFileUpload = async () => {
             const files = fileInputRef.current?.files
@@ -70,7 +57,7 @@ export const ManageNovels = () => {
                             path: NOVEL_DIR_PATH + file.name,
                             data: text,
                             directory: ROOT_DIRECTORY,
-                            encoding:Encoding.UTF8,
+                            encoding: Encoding.UTF8,
                             recursive: true
                         })
                         .catch(async e => {
@@ -90,7 +77,9 @@ export const ManageNovels = () => {
                         header: 'Success',
                         buttons: ['Ok']
                     })
-                    await setNovelsFromDirectory()
+                    await makeLoading('updating...')
+                        .then(async r => await setNovelsFromDeviceStorage())
+                        .finally(dismissLoading)
                 })
         }
 
@@ -100,18 +89,18 @@ export const ManageNovels = () => {
                 header: 'Confirm Deletion',
                 buttons: [{
                     text: 'Delete',
-                    handler: () => {
+                    handler: async () => {
                         makeLoading({
                             message: `Deleting '${file.name}'`,
                             spinner: 'bubbles'
-                        })
-                        Filesystem.deleteFile({path: file.uri})
-                            .then(() => setNovels(p => p?.filter(n => n.uri !== file.uri)))
-                            .catch(async e => await makeAlert({
-                                header: 'Error Deleting The File',
-                                message: JSON.stringify(e ?? 'NO_ERROR'),
-                                buttons: ['Return Back']
-                            }))
+                        }).then(r =>
+                            deleteNovel(file)
+                                .then(r => deleteBookmarksForNovelFileName(file.name))
+                                .catch(async e => await makeAlert({
+                                    header: 'Error Deleting The File',
+                                    message: JSON.stringify(e ?? 'NO_ERROR'),
+                                    buttons: ['Return Back']
+                                })))
                             .finally(dismissLoading)
                     }
                 }, 'Return Back']
@@ -126,33 +115,27 @@ export const ManageNovels = () => {
                 message: 'Changing The Name...',
                 spinner: 'dots'
             })
-
-            Filesystem.rename({
-                from: file.uri,
-                to: newPath
-            })
-                .then(r => {
-                    const newBookmarks: Bookmark[] = bookmarks.map(b => b.novelFileName !== file.name ? b :
-                        {
-                            ...b,
-                            novelFileName: newName
-                        })
-                    setBookmarks(newBookmarks)
-                    localStorage.setItem('bookmarks', JSON.stringify(newBookmarks))
-                    makeAlert({
-                        header: 'Success',
-                        message: `name changed successfully from '${file.name}' to '${newName}'.`,
-                        buttons: ['Ok']
+                .then(_ =>
+                    Filesystem.rename({
+                        from: file.uri,
+                        to: newPath
                     })
-                })
-                .then(setNovelsFromDirectory)
-                .catch(async e => await makeAlert({
-                    header: 'Error Deleting The File',
-                    message: JSON.stringify(e ?? 'NO_ERROR'),
-                    buttons: ['Return Back']
-                }))
+                        .then(async r => {
+                            changeNovelNameForBookmarks(file.name, newName)
+                            await makeAlert({
+                                header: 'Success',
+                                message: `name changed successfully from '${file.name}' to '${newName}'.`,
+                                buttons: ['Ok']
+                            })
+                        })
+                        .then(setNovelsFromDeviceStorage)
+                        .catch(async e => await makeAlert({
+                            header: 'Error Deleting The File',
+                            message: JSON.stringify(e ?? 'NO_ERROR'),
+                            buttons: ['Return Back']
+                        }))
+                )
                 .finally(dismissLoading)
-
         }
 
         return (
@@ -205,4 +188,4 @@ export const ManageNovels = () => {
     }
 ;
 
-export default ManageNovels
+export default observer(ManageNovels)

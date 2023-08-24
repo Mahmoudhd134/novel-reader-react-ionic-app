@@ -6,19 +6,21 @@ import Novel from "./Pages/Novel/Novel";
 import ManageNovels from "./Pages/Novel/ManageNovels";
 import {useEffect} from "react";
 import NovelsBookmarks from "./Pages/Novel/NovelsBookmarks";
+import {useMobxStore} from "./App/Stores/Store";
 
 function App() {
+    const {
+        novelStore: {novels, setNovelsFromDeviceStorage},
+        bookmarkStore: {bookmarks, setBookmarksFromLocalStorage}
+    } = useMobxStore()
+
     useEffect(() => {
-        const goBack = (ev: any) => {
-            ev.detail.register(10, (processNextHandler: any) => {
-                console.log('Handler A was called!');
-
-                processNextHandler();
-            });
-        }
-        document.addEventListener('ionBackButton', goBack)
-
-        return () => document.removeEventListener('ionBackButton', goBack)
+        (async () => {
+            if (!novels)
+                await setNovelsFromDeviceStorage()
+        })()
+        if (!bookmarks)
+            setBookmarksFromLocalStorage()
     }, []);
 
     return <IonRouterOutlet>
