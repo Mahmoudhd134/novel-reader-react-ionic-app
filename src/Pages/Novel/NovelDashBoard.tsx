@@ -6,7 +6,7 @@ export const NovelDashBoard = () => {
 
     return (
         <IonPage>
-            <MyToolbar backButton>
+            <MyToolbar>
                 <IonTitle className={'ion-text-center'}>Novel Section</IonTitle>
             </MyToolbar>
 

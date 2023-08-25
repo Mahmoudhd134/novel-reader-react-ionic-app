@@ -26,7 +26,7 @@ const NovelsBookmarks = () => {
         </MyToolbar>
 
         <IonContent className={'ion-padding'}>
-            <IonItemGroup>
+            <IonItemGroup className={'flex flex-wrap gap-3 justify-around'}>
                 {bookmarks?.length == 0 && <IonItem>
                     <IonText className={'my-3'}>
                         <div className="text-center my-3 text-lg text-blue-900">
@@ -40,16 +40,13 @@ const NovelsBookmarks = () => {
                     </IonText>
                 </IonItem>}
                 {bookmarks?.map(b => <div key={b.novelFileName + b.novelName + b.volumeName + b.chapterName}
-                                          className={'my-5 flex flex-col border rounded-xl p-4 text-end'}>
+                                          className={'w-full sm:w-8/12 md:w-5/12 xl:w-4/12 flex flex-col border rounded-xl p-4 text-end'}>
                     <div>الرواية: {b.novelName}</div>
                     <div>المجلد: {b.volumeName}</div>
                     <div>الفصل: {b.chapterName}</div>
                     <div className="flex flex-wrap gap-3 mt-8 justify-around">
                         <IonButton color={'danger'} className={'w-full sm:w-8/12 md:w-5/12 lg:w-3/12'}
-                                   onClick={e => {
-                                       deleteBookmark(b)
-                                       navigator.push('/novels/read')
-                                   }}>
+                                   onClick={e => deleteBookmark(b)}>
                             <IonIcon ios={trashOutline} md={trashSharp}/>
                         </IonButton>
                         <IonButton color={'primary'} className={'w-full sm:w-8/12 md:w-5/12 lg:w-3/12'}
