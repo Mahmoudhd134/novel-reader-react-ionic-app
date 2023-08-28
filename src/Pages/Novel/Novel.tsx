@@ -1,4 +1,4 @@
-import React, {useEffect, useRef} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import {Volume} from "./Volume";
 import {
     IonButton,
@@ -72,7 +72,6 @@ const Novel = () => {
             .finally(dismissLoading)
 
     }
-
 
     return (
         <IonPage>

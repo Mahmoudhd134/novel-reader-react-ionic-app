@@ -1,9 +1,8 @@
-import {ReactNode} from "react";
-import {IonButton, IonContent, IonPage, IonTitle} from "@ionic/react";
+import {ReactNode, useEffect, useState} from "react";
+import {IonButton, IonContent, IonPage, IonProgressBar, IonTitle} from "@ionic/react";
 import {MyToolbar} from "../../components/MyToolbar";
 
 export const NovelDashBoard = () => {
-
     return (
         <IonPage>
             <MyToolbar>

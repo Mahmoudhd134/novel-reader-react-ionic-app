@@ -72,14 +72,15 @@ const ManageNovels = () => {
             })
                 .finally(async () => {
                     await dismissLoading()
-                    await makeAlert({
-                        message: 'تم رفع الملف بنجاح',
-                        header: 'Success',
-                        buttons: ['Ok']
-                    })
                     await makeLoading('updating...')
                         .then(async r => await setNovelsFromDeviceStorage())
                         .finally(dismissLoading)
+                        .finally(async () =>
+                            await makeAlert({
+                                message: 'تم رفع الملف بنجاح',
+                                header: 'Success',
+                                buttons: ['Ok']
+                            }))
                 })
         }
 

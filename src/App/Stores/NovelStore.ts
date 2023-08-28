@@ -71,16 +71,49 @@ export class NovelStore {
             encoding: Encoding.UTF8
         })
             .then(r => {
-                let novel = JSON.parse(r.data as string)
+                const novelString = this.refactorNovelChangeWorlds(r.data as string)
+
+                let novel = JSON.parse(novelString)
 
                 if (isNovelModelWithNoVolumes(novel))
                     novel = this.convertNovelWithNoVolumesToNovelWithVolumes(novel)
 
+
                 runInAction(() => {
                     this.selectedNovelWithVolumes = novel
-                    this.volumesName = (novel as NovelModelWithVolumes).Volumes.map(v => v.Title)
+                    this.volumesName = (this.selectedNovelWithVolumes)?.Volumes.map(v => v.Title)
                 })
             })
+    }
+
+    private refactorNovelChangeWorlds = (string: string) => {
+        const changeMap = new Map<string, string>()
+
+        changeMap.set('آلهتهم', 'طواغيتهم')
+
+        const theMultiple = ['الالهه', 'الآلهه', 'الألهه', 'الإلهه', 'الالهة', 'الآلهة', 'الألهة', 'الإلهة']
+        theMultiple.forEach(word => changeMap.set(word, 'الطواغيت'))
+
+        const multiple = ['الهه', 'آلهه', 'ألهه', 'إلهه', 'الهة', 'آلهة', 'ألهة', 'إلهة']
+        multiple.forEach(word => changeMap.set(word, 'طواغيت'))
+
+        // apply the multiple words and it's all derivations
+        changeMap.forEach((value, key) => string = string.replaceAll(key, value))
+
+        // changeMap.clear()
+
+        const theSingle = ['الاله', 'الإله', 'الأله', 'الآله', 'الالة', 'الإلة', 'الألة', 'الآلة']
+        theSingle.forEach(word => changeMap.set(word, 'الطاغوت'))
+
+        const single = ['اله', 'إله', 'أله', 'آله', 'الة', 'إلة', 'ألة', 'آلة']
+        single.forEach(word => changeMap.set(word, 'طاغوت'))
+
+        //apply the single words explicitly
+        string = string.split(' ')
+            .map(word => changeMap.has(word) ? changeMap.get(word) : word)
+            .join(' ')
+
+        return string
     }
 
     convertNovelWithNoVolumesToNovelWithVolumes = (n: NovelModelWithNoVolumes) => {
