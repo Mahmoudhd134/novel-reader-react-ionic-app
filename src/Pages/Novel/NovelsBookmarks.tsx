@@ -7,21 +7,42 @@ import {
     IonPage,
     IonText,
     IonTitle,
+    useIonAlert,
+    useIonLoading,
     useIonRouter
 } from "@ionic/react";
 import {MyToolbar} from "../../components/MyToolbar";
 import {arrowRedoOutline, arrowRedoSharp, trashOutline, trashSharp} from "ionicons/icons";
 import {useMobxStore} from "../../App/Stores/Store";
 import {observer} from "mobx-react";
+import {Bookmark} from "../../Models/Bookmark";
 
 const NovelsBookmarks = () => {
     const navigator = useIonRouter()
     const {bookmarkStore, novelStore} = useMobxStore()
     const {bookmarks, deleteBookmark} = bookmarkStore
     const {gotoBookmarkHandler} = novelStore
+    const [makeLoading, dismiss] = useIonLoading()
+    const [makeAlert] = useIonAlert()
+
+    const handleGotoBookmarkHandler = (bookmark: Bookmark) => async () => {
+        await makeLoading({
+            message: 'loading...',
+            spinner: 'bubbles'
+        })
+        const result = await gotoBookmarkHandler(bookmark)
+        await dismiss()
+        if (result)
+            navigator.push('/novels/read')
+        else
+            await makeAlert({
+                header: 'Error',
+                message: 'There are something wrong with this bookmark delete it'
+            })
+    }
 
     return <IonPage>
-        <MyToolbar backButton>
+        <MyToolbar backButton menuButton={false}>
             <IonTitle className={'ion-text-center'}>Novels Bookmarks</IonTitle>
         </MyToolbar>
 
@@ -50,10 +71,7 @@ const NovelsBookmarks = () => {
                             <IonIcon ios={trashOutline} md={trashSharp}/>
                         </IonButton>
                         <IonButton color={'primary'} className={'w-full sm:w-8/12 md:w-5/12 lg:w-3/12'}
-                                   onClick={async e => {
-                                       await gotoBookmarkHandler(b)
-                                       navigator.push('/novels/read')
-                                   }}>
+                                   onClick={handleGotoBookmarkHandler(b)}>
                             <IonIcon ios={arrowRedoOutline} md={arrowRedoSharp}/>
                         </IonButton>
                     </div>

@@ -21,45 +21,25 @@ import '@ionic/react/css/text-alignment.css';
 import '@ionic/react/css/text-transformation.css';
 import '@ionic/react/css/flex-utils.css';
 import '@ionic/react/css/display.css';
-import {
-    IonApp,
-    IonButton,
-    IonButtons,
-    IonContent,
-    IonPage,
-    IonRouterOutlet,
-    IonTitle,
-    setupIonicReact
-} from '@ionic/react';
+import {IonApp, IonRouterOutlet, setupIonicReact} from '@ionic/react';
 import {Route} from "react-router-dom";
 import {IonReactRouter} from "@ionic/react-router";
 import App from "./App";
-import {MyToolbar} from "./components/MyToolbar";
 
 setupIonicReact()
 
-const history = createBrowserHistory()
+export const history = createBrowserHistory()
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-    <React.StrictMode>
+    // <React.StrictMode>
         <storeContext.Provider value={store}>
             <IonApp>
                 <IonReactRouter {...{history}}>
                     <IonRouterOutlet>
                         <Route path={'/'} component={App}/>
-                        <Route exact path={'/login'} render={() => <IonPage>
-                            <MyToolbar menuButton={false}>
-                                <IonTitle>Login Page</IonTitle>
-                            </MyToolbar>
-                            <IonContent>
-                                <IonButton routerLink={'/'}>
-                                    Login
-                                </IonButton>
-                            </IonContent>
-                        </IonPage>}/>
                     </IonRouterOutlet>
                 </IonReactRouter>
             </IonApp>
         </storeContext.Provider>
-    </React.StrictMode>,
+    // </React.StrictMode>,
 )

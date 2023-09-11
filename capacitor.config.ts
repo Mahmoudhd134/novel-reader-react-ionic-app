@@ -6,7 +6,13 @@ const config: CapacitorConfig = {
     webDir: 'dist',
     server: {
         androidScheme: 'https',
-        // url: 'https://8ac7-154-182-95-29.ngrok-free.app'
+        // url: 'https://6f78-154-182-71-237.ngrok-free.app'
+    },
+    android: {
+        loggingBehavior: 'none'
+    },
+    ios: {
+        loggingBehavior: 'none',
     }
 };
 export default config;

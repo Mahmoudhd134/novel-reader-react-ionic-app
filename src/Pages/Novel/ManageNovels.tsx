@@ -13,16 +13,15 @@ import {
     useIonLoading
 } from "@ionic/react";
 import {MyToolbar} from "../../components/MyToolbar";
-import {Encoding, FileInfo, Filesystem} from "@capacitor/filesystem";
+import {FileInfo} from "@capacitor/filesystem";
 import {useEffect, useRef} from "react";
-import {NOVEL_DIR_PATH, ROOT_DIRECTORY} from "../../env";
 import {addCircleOutline, addCircleSharp, saveOutline, saveSharp, trashOutline, trashSharp} from 'ionicons/icons'
 import {useMobxStore} from "../../App/Stores/Store";
 import {observer} from "mobx-react";
 
 const ManageNovels = () => {
         const {novelStore, bookmarkStore} = useMobxStore()
-        const {novels, setNovelsFromDeviceStorage, deleteNovel} = novelStore
+        const {novels, setNovelsFromDeviceStorage, deleteNovel, uploadNovel, renameNovel} = novelStore
         const {
             changeNovelNameForBookmarks,
             deleteBookmarksForNovelFileName
@@ -52,14 +51,7 @@ const ManageNovels = () => {
                     if (!file)
                         return
                     const text = await file.text()
-                    await Filesystem.writeFile(
-                        {
-                            path: NOVEL_DIR_PATH + file.name,
-                            data: text,
-                            directory: ROOT_DIRECTORY,
-                            encoding: Encoding.UTF8,
-                            recursive: true
-                        })
+                    await uploadNovel(file.name, text)
                         .catch(async e => {
                             console.error(e)
                             await makeAlert({
@@ -116,11 +108,8 @@ const ManageNovels = () => {
                 message: 'Changing The Name...',
                 spinner: 'dots'
             })
-                .then(_ =>
-                    Filesystem.rename({
-                        from: file.uri,
-                        to: newPath
-                    })
+                .then(async _ =>
+                    await renameNovel(file.uri, newPath)
                         .then(async r => {
                             changeNovelNameForBookmarks(file.name, newName)
                             await makeAlert({
@@ -141,7 +130,7 @@ const ManageNovels = () => {
 
         return (
             <IonPage>
-                <MyToolbar backButton>
+                <MyToolbar backButton menuButton={false}>
                     <IonTitle className={'ion-text-center'}>Manage Novel Files</IonTitle>
                 </MyToolbar>
 

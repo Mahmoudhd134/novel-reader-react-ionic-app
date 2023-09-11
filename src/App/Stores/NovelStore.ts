@@ -37,33 +37,28 @@ export class NovelStore {
             this.novels = result
         })
     }
-    getNovelsFromDeviceStorage = async () => {
-        const {files} = await Filesystem.readdir({
-            path: NOVEL_DIR_PATH.slice(0, -1),
-            directory: ROOT_DIRECTORY
-        })
-        return files.filter(f => f.name.endsWith('.json'))
+
+    setSelectNovelInfo = async (fileInfo: FileInfo) => {
+        this.selectedNovelInfo = fileInfo
+        await this.setNovelUsingUri(fileInfo.uri)
+        this.unselectVolume()
+        this.unselectChapter()
     }
 
-    deleteNovel = async (novelFile: FileInfo) => {
-        await Filesystem.deleteFile({path: novelFile.uri})
-
-        if (this.selectedNovelInfo?.uri === novelFile.uri) {
-            runInAction(() => {
-                this.selectedNovelInfo = undefined
-                this.selectedNovelWithVolumes = undefined
-                this.volumesName = undefined
-                this.volume = undefined
-                this.chapterIndex = undefined
-                this.chaptersName = undefined
-                this.chapter = undefined
-            })
-        }
-
-        runInAction(() => {
-            this.setNovelsFromDeviceStorage()
-        })
+    unselectSelectedNovelInfo = () => {
+        this.selectedNovelInfo = undefined
     }
+    unselectSelectedNovelWithVolumes = () => {
+        this.selectedNovelWithVolumes = undefined
+    }
+    unselectVolume = () => {
+        this.volume = undefined
+    }
+    unselectChapter = () => {
+        this.chapter = undefined
+        this.chapterIndex = undefined
+    }
+
 
     setNovelUsingUri = (uri: string) => {
         return Filesystem.readFile({
@@ -85,6 +80,107 @@ export class NovelStore {
                 })
             })
     }
+
+
+    setVolumeByName = (name: string) =>
+        this.setVolume(this.selectedNovelWithVolumes?.Volumes.find(x => x.Title == name))
+
+    setChapterByName = (name: string) => {
+        const index = this.volume?.Chapters.findIndex(x => x.Title === name)
+        if (index == undefined || index == -1)
+            return
+
+        this.chapterIndex = index
+        this.chapter = this.volume?.Chapters[index]
+    }
+    getNovelsFromDeviceStorage = async () => {
+        const {files} = await Filesystem.readdir({
+            path: NOVEL_DIR_PATH.slice(0, -1),
+            directory: ROOT_DIRECTORY
+        })
+        return files.filter(f => f.name.endsWith('.json'))
+    }
+
+
+    setChapterToNextOne = () => {
+        if (this.chapterIndex == undefined || !this.volume)
+            return
+        if (!this.hasNextChapter())
+            return
+
+        this.chapter = this.volume.Chapters[++this.chapterIndex]
+    }
+
+    setChapterToPreviousOne = () => {
+        if (this.chapterIndex == undefined || !this.volume)
+            return
+        if (!this.hasPrevChapter())
+            return
+
+        this.chapter = this.volume.Chapters[--this.chapterIndex]
+    }
+    hasNextChapter = () => {
+        if (this.chapterIndex == undefined || !this.volume)
+            return false
+
+        return this.chapterIndex < this.volume.Chapters.length - 1
+    }
+    hasPrevChapter = () => {
+        if (this.chapterIndex == undefined || !this.volume)
+            return false
+
+        return this.chapterIndex > 0
+    }
+    gotoBookmarkHandler = async (bookmark: Bookmark) => {
+        const novelInfo = this.novels?.find(n => n.name === bookmark.novelFileName)
+        if (!novelInfo)
+            return false
+
+        if (novelInfo.name !== this.selectedNovelInfo?.name)
+            await this.setSelectNovelInfo(novelInfo)
+
+
+        const bookmarkVolume = this.selectedNovelWithVolumes?.Volumes.find(v => v.Title === bookmark.volumeName)
+        if (!bookmarkVolume)
+            return false
+
+        return runInAction(() => {
+            this.setVolume(bookmarkVolume)
+            this.setChapterByName(bookmark.chapterName)
+            return true
+        })
+    }
+
+    uploadNovel = async (name: string, data: string) => {
+        return await Filesystem.writeFile(
+            {
+                path: NOVEL_DIR_PATH + name,
+                data,
+                directory: ROOT_DIRECTORY,
+                encoding: Encoding.UTF8,
+                recursive: true
+            })
+    }
+    deleteNovel = async (novelFile: FileInfo) => {
+        await Filesystem.deleteFile({path: novelFile.uri})
+
+        if (this.selectedNovelInfo?.uri === novelFile.uri) {
+            runInAction(() => {
+                this.selectedNovelInfo = undefined
+                this.selectedNovelWithVolumes = undefined
+                this.volumesName = undefined
+                this.volume = undefined
+                this.chapterIndex = undefined
+                this.chaptersName = undefined
+                this.chapter = undefined
+            })
+        }
+
+        runInAction(() => {
+            this.setNovelsFromDeviceStorage()
+        })
+    }
+    renameNovel = async (from: string, to: string) => await Filesystem.rename({from, to})
 
     private refactorNovelChangeWorlds = (string: string) => {
         const changeMap = new Map<string, string>()
@@ -116,7 +212,7 @@ export class NovelStore {
         return string
     }
 
-    convertNovelWithNoVolumesToNovelWithVolumes = (n: NovelModelWithNoVolumes) => {
+    private convertNovelWithNoVolumesToNovelWithVolumes = (n: NovelModelWithNoVolumes) => {
         const novelWithVolumes: NovelModelWithVolumes = {
             Name: n.Name,
             Volumes: []
@@ -135,87 +231,4 @@ export class NovelStore {
 
         return novelWithVolumes
     }
-
-    setVolumeByName = (name: string) =>
-        this.setVolume(this.selectedNovelWithVolumes?.Volumes.find(x => x.Title == name))
-
-    setChapterByName = (name: string) => {
-        const index = this.volume?.Chapters.findIndex(x => x.Title === name)
-        if (index == undefined || index == -1)
-            return
-
-        this.chapterIndex = index
-        this.chapter = this.volume?.Chapters[index]
-    }
-
-    hasNextChapter = () => {
-        if (this.chapterIndex == undefined || !this.volume)
-            return false
-
-        return this.chapterIndex < this.volume.Chapters.length - 1
-    }
-    hasPrevChapter = () => {
-        if (this.chapterIndex == undefined || !this.volume)
-            return false
-
-        return this.chapterIndex > 0
-    }
-    setChapterToNextOne = () => {
-        if (this.chapterIndex == undefined || !this.volume)
-            return
-        if (!this.hasNextChapter())
-            return
-
-        this.chapter = this.volume.Chapters[++this.chapterIndex]
-    }
-
-    setChapterToPreviousOne = () => {
-        if (this.chapterIndex == undefined || !this.volume)
-            return
-        if (!this.hasPrevChapter())
-            return
-
-        this.chapter = this.volume.Chapters[--this.chapterIndex]
-    }
-    gotoBookmarkHandler = async (bookmark: Bookmark) => {
-        const novelInfo = this.novels?.find(n => n.name === bookmark.novelFileName)
-        if (!novelInfo)
-            return
-
-        if (novelInfo.name !== this.selectedNovelInfo?.name)
-            await this.setSelectNovelInfo(novelInfo)
-
-
-        const bookmarkVolume = this.selectedNovelWithVolumes?.Volumes.find(v => v.Title === bookmark.volumeName)
-        if (!bookmarkVolume)
-            return
-
-        runInAction(() => {
-            this.setVolume(bookmarkVolume)
-            this.setChapterByName(bookmark.chapterName)
-        })
-
-    }
-
-    setSelectNovelInfo = async (fileInfo: FileInfo) => {
-        this.selectedNovelInfo = fileInfo
-        await this.setNovelUsingUri(fileInfo.uri)
-        this.unselectVolume()
-        this.unselectChapter()
-    }
-
-    unselectSelectedNovelInfo = () => {
-        this.selectedNovelInfo = undefined
-    }
-    unselectSelectedNovelWithVolumes = () => {
-        this.selectedNovelWithVolumes = undefined
-    }
-    unselectVolume = () => {
-        this.volume = undefined
-    }
-    unselectChapter = () => {
-        this.chapter = undefined
-        this.chapterIndex = undefined
-    }
-
 }

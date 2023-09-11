@@ -75,28 +75,12 @@ const Novel = () => {
 
     return (
         <IonPage>
-            <MyToolbar backButton>
+            <MyToolbar backButton menuButton={false}>
                 <IonTitle className={'ion-text-center'}>Read Novel</IonTitle>
             </MyToolbar>
 
             <IonContent className={'ion-padding'} ref={ionContentRef}>
-                <div className={'container mx-auto'} style={{direction: 'rtl'}}>
-                    <IonItem>
-                        <IonSelect
-                            onIonChange={e => gotoBookmarkHandler(e.detail.value)}
-                            label="Goto Bookmark"
-                            placeholder="Bookmarks">
-                            {bookmarks?.map(b => <IonSelectOption
-                                key={b.novelFileName + b.novelName + b.volumeName + b.chapterName}
-                                value={b}
-                                className={'my-5 flex flex-col border rounded-xl p-4 text-end'}>
-                                <div>الرواية: {b.novelName} </div>
-                                <div>المجلد: {b.volumeName} </div>
-                                <div>الفصل: {b.chapterName} </div>
-                            </IonSelectOption>)}
-                        </IonSelect>
-                    </IonItem>
-
+                {/*<div className={'container mx-auto'} style={{direction: 'rtl'}}>*/}
                     <IonItem className={'mt-8'}>
                         <IonSelect
                             onIonChange={e => setNovel(e.detail.value)}
@@ -137,7 +121,7 @@ const Novel = () => {
                     </>}
 
                     <IonButton onClick={_ => ionContentRef.current?.scrollToTop(1500)}>Up</IonButton>
-                </div>
+                {/*</div>*/}
             </IonContent>
         </IonPage>
     );
