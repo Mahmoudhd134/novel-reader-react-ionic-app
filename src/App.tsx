@@ -1,7 +1,6 @@
 import {IonContent, IonItem, IonMenu, IonMenuToggle, IonPage, IonRouterOutlet, IonTitle} from "@ionic/react";
 import {Redirect, Route} from "react-router-dom";
 import NovelDashBoard from "./Pages/Novel/NovelDashBoard";
-import TranslationDashboard from "./Pages/Translation/TranslationDashboard";
 import Home from "./Pages/Home";
 import Novel from "./Pages/Novel/Novel";
 import ManageNovels from "./Pages/Novel/ManageNovels";
@@ -11,7 +10,6 @@ import {useMobxStore} from "./App/Stores/Store";
 import {MyToolbar} from "./components/MyToolbar";
 import {PATHS} from "./env";
 import {App as CapacitorApp, BackButtonListenerEvent} from '@capacitor/app'
-import AllLanguages from "./Pages/Translation/AllLanguages";
 
 function App() {
     const {
@@ -62,8 +60,6 @@ function App() {
             <Route exact path={'/novels/manage'} component={ManageNovels}/>
             <Route exact path={'/novels/bookmarks'} component={NovelsBookmarks}/>
 
-            <Route exact path={'/translations'} component={TranslationDashboard}/>
-            <Route exact path={'/translations/all'} component={AllLanguages}/>
             <Route exact path={'/'}>
                 <Redirect to={'/home'}/>
             </Route>

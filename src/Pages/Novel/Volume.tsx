@@ -1,6 +1,6 @@
 import React from "react";
 import Chapter from './Chapter'
-import {IonButton, IonButtons, IonItem, IonSelect, IonSelectOption} from "@ionic/react";
+import {IonItem, IonSelect, IonSelectOption} from "@ionic/react";
 import {useMobxStore} from "../../App/Stores/Store";
 import {observer} from "mobx-react";
 
@@ -13,10 +13,6 @@ export const Volume = () => {
         setChapterByName,
         chaptersName,
         chapter,
-        hasNextChapter,
-        hasPrevChapter,
-        setChapterToPreviousOne,
-        setChapterToNextOne
     } = novelStore
 
     if (!volume)
@@ -25,18 +21,6 @@ export const Volume = () => {
             <p>This Is Error !!!</p>
         </>
 
-
-    const nextAndPrevButtons = chapterIndex != undefined && <IonButtons className="flex justify-between">
-        <IonButton
-            disabled={!hasNextChapter()}
-            onClick={_ => setChapterToNextOne()}
-        >Next</IonButton>
-
-        <IonButton
-            disabled={!hasPrevChapter()}
-            onClick={_ => setChapterToPreviousOne()}
-        >Prev</IonButton>
-    </IonButtons>
 
     return (
         <>
@@ -58,11 +42,7 @@ export const Volume = () => {
                 </IonSelect>
             </IonItem>
 
-            {chapter && <>
-                {nextAndPrevButtons}
-                <Chapter/>
-                {nextAndPrevButtons}
-            </>}
+            {chapter && <Chapter/>}
         </>
     );
 };

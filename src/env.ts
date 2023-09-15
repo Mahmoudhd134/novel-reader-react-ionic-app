@@ -14,10 +14,6 @@ export const PATHS: Path[] = [
         name: 'Novels Dashboard',
         url: '/novels',
     },
-    {
-        name: 'Translations Dashboard',
-        url: '/translations',
-    },
 ]
 
 type Path = {
