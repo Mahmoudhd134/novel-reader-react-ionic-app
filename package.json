@@ -11,7 +11,6 @@
     "sync": "npx cap sync"
   },
   "dependencies": {
-    "@capacitor-mlkit/translation": "^5.1.0",
     "@capacitor/android": "^5.2.3",
     "@capacitor/app": "^5.0.6",
     "@capacitor/cli": "^5.2.3",
