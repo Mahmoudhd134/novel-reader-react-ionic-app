@@ -23,12 +23,27 @@ export class NovelStore {
         makeAutoObservable(this)
     }
 
-    setVolume = (volume: VolumeModel | undefined) => {
+    private setVolume = (volume: VolumeModel | undefined) => {
         this.volume = volume
-        if (volume)
-            this.chaptersName = volume.Chapters.map(c => c.Title)
+        if (!volume)
+            return
+
+        volume.Title = this.refactorNovelChangeSentence(volume.Title)
+        volume.Chapters = volume.Chapters.map(c => ({
+            ...c,
+            Title: this.refactorNovelChangeSentence(c.Title)
+        }))
+
+        this.chaptersName = volume.Chapters.map(c => c.Title)
     }
-    setChapter = (chapter: ChapterModel) => this.chapter = chapter
+    private setChapter = (chapter: ChapterModel | undefined) => {
+        this.chapter = chapter
+        if (!chapter)
+            return
+
+        chapter.Title = this.refactorNovelChangeSentence(chapter.Title)
+        chapter.Body = chapter.Body.map(s => this.refactorNovelChangeSentence(s))
+    }
 
 
     setNovelsFromDeviceStorage = async () => {
@@ -55,7 +70,7 @@ export class NovelStore {
         this.volume = undefined
     }
     unselectChapter = () => {
-        this.chapter = undefined
+        this.setChapter(undefined)
         this.chapterIndex = undefined
     }
 
@@ -66,19 +81,24 @@ export class NovelStore {
             encoding: Encoding.UTF8
         })
             .then(r => {
-                const novelString = this.refactorNovelChangeWorlds(r.data as string)
-
-                let novel = JSON.parse(novelString)
+                let novel = JSON.parse(r.data as string) as NovelModelWithVolumes
 
                 if (isNovelModelWithNoVolumes(novel))
-                    novel = this.convertNovelWithNoVolumesToNovelWithVolumes(novel)
+                    novel = this.convertNovelWithNoVolumesToNovelWithVolumes(novel as any)
 
+                novel.Name = this.refactorNovelChangeSentence(novel.Name)
+                novel.Volumes = novel.Volumes.map(v => ({
+                    ...v,
+                    Title: this.refactorNovelChangeSentence(v.Title)
+                }))
 
-                runInAction(() => {
-                    this.selectedNovelWithVolumes = novel
-                    this.volumesName = (this.selectedNovelWithVolumes)?.Volumes.map(v => v.Title)
-                })
+                this.setSelectedNovelWithVolumes(novel)
             })
+    }
+
+    private setSelectedNovelWithVolumes = (novel: NovelModelWithVolumes) => {
+        this.selectedNovelWithVolumes = novel
+        this.volumesName = (this.selectedNovelWithVolumes)?.Volumes.map(v => v.Title)
     }
 
 
@@ -86,12 +106,13 @@ export class NovelStore {
         this.setVolume(this.selectedNovelWithVolumes?.Volumes.find(x => x.Title == name))
 
     setChapterByName = (name: string) => {
-        const index = this.volume?.Chapters.findIndex(x => x.Title === name)
+        // const index = this.volume?.Chapters.findIndex(x => x.Title === name)
+        const index = this.chaptersName?.findIndex(x => x === name)
         if (index == undefined || index == -1)
             return
 
         this.chapterIndex = index
-        this.chapter = this.volume?.Chapters[index]
+        this.setChapter(this.volume?.Chapters[index])
     }
     getNovelsFromDeviceStorage = async () => {
         const {files} = await Filesystem.readdir({
@@ -108,7 +129,7 @@ export class NovelStore {
         if (!this.hasNextChapter())
             return
 
-        this.chapter = this.volume.Chapters[++this.chapterIndex]
+        this.setChapter(this.volume.Chapters[++this.chapterIndex])
     }
 
     setChapterToPreviousOne = () => {
@@ -117,7 +138,7 @@ export class NovelStore {
         if (!this.hasPrevChapter())
             return
 
-        this.chapter = this.volume.Chapters[--this.chapterIndex]
+        this.setChapter(this.volume.Chapters[--this.chapterIndex])
     }
     hasNextChapter = () => {
         if (this.chapterIndex == undefined || !this.volume)
@@ -169,10 +190,10 @@ export class NovelStore {
                 this.selectedNovelInfo = undefined
                 this.selectedNovelWithVolumes = undefined
                 this.volumesName = undefined
-                this.volume = undefined
+                this.setVolume(undefined)
                 this.chapterIndex = undefined
                 this.chaptersName = undefined
-                this.chapter = undefined
+                this.setChapter(undefined)
             })
         }
 
@@ -182,34 +203,33 @@ export class NovelStore {
     }
     renameNovel = async (from: string, to: string) => await Filesystem.rename({from, to})
 
-    private refactorNovelChangeWorlds = (string: string) => {
+    private refactorNovelChangeSentence = (sentence: string) => {
         const changeMap = new Map<string, string>()
 
         changeMap.set('آلهتهم', 'طواغيتهم')
 
-        const theMultiple = ['الالهه', 'الآلهه', 'الألهه', 'الإلهه', 'الالهة', 'الآلهة', 'الألهة', 'الإلهة']
+        const theMultiple = ['الالهه', 'الآلهه', 'الألهه', 'الإلهه']
         theMultiple.forEach(word => changeMap.set(word, 'الطواغيت'))
 
-        const multiple = ['الهه', 'آلهه', 'ألهه', 'إلهه', 'الهة', 'آلهة', 'ألهة', 'إلهة']
+        const multiple = ['الهه', 'آلهه', 'ألهه', 'إلهه']
         multiple.forEach(word => changeMap.set(word, 'طواغيت'))
 
         // apply the multiple words and it's all derivations
-        changeMap.forEach((value, key) => string = string.replaceAll(key, value))
+        changeMap.forEach((value, key) => sentence = sentence.replaceAll(key, value))
 
         // changeMap.clear()
 
-        const theSingle = ['الاله', 'الإله', 'الأله', 'الآله', 'الالة', 'الإلة', 'الألة', 'الآلة']
+        const theSingle = ['الاله', 'الإله', 'الأله', 'الآله']
         theSingle.forEach(word => changeMap.set(word, 'الطاغوت'))
 
-        const single = ['اله', 'إله', 'أله', 'آله', 'الة', 'إلة', 'ألة', 'آلة']
+        const single = ['اله', 'إله', 'أله', 'آله']
         single.forEach(word => changeMap.set(word, 'طاغوت'))
 
         //apply the single words explicitly
-        string = string.split(' ')
+        sentence = sentence.split(' ')
             .map(word => changeMap.has(word) ? changeMap.get(word) : word)
             .join(' ')
-
-        return string
+        return sentence
     }
 
     private convertNovelWithNoVolumesToNovelWithVolumes = (n: NovelModelWithNoVolumes) => {
